@@ -1,0 +1,41 @@
+name: matrix-env-test
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      roots: ${{ steps.r.outputs.roots }}
+    steps:
+      - id: r
+        run: echo 'roots=["stg/alb","stg/rds","stg/waf"]' >> "$GITHUB_OUTPUT"
+
+  plan:
+    needs: detect
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        root: ${{ fromJSON(needs.detect.outputs.roots) }}
+    steps:
+      - run: echo "plan ${{ matrix.root }}"
+      - run: echo "### plan of ${{ matrix.root }}" >> "$GITHUB_STEP_SUMMARY"
+
+  apply:
+    needs: [detect, plan]
+    runs-on: ubuntu-latest
+    environment: terraform-stg
+    strategy:
+      max-parallel: 1
+      matrix:
+        root: ${{ fromJSON(needs.detect.outputs.roots) }}
+    steps:
+      - run: echo "apply ${{ matrix.root }}"
