@@ -34,7 +34,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: terraform-stg
     strategy:
-      max-parallel: 1
       matrix:
         root: ${{ fromJSON(needs.detect.outputs.roots) }}
     steps:
